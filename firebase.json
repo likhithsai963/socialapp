@@ -1,0 +1,11 @@
+{
+  "hosting": {
+    "site": "socialapp-ab16d",
+    "public": "public",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ]
+  }
+}
