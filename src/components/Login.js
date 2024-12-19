@@ -3,19 +3,30 @@ import { signInWithPopup } from "firebase/auth";
 import {auth,provider} from "../utils/firebase"
 import { useDispatch } from "react-redux";
 import { addUser } from "../utils/loginSlice";
+import { useNavigate } from "react-router-dom";
 const Login = () => {
     const dispatch = useDispatch();
+    const navigate = useNavigate();
     const handleLogin = async() =>{
         console.log("i was clicked")
         try {
             const result = await signInWithPopup(auth,provider);
             console.log("User Info:", result.user);
-            dispatch(addUser(result.user))
-
+            const user = result.user
+            dispatch(addUser({
+                email: user.email,
+                displayName: user.displayName,
+                emailVerified: user.emailVerified,
+                uid: user.uid,
+                photoURL:user.photoURL
+            }));
+            if(user.emailVerified){
+                console.log("email",user.emailVerified)
+                navigate("/home")
+            }
         } catch (error) {
             console.error("Login Error:", error.message);
         }
-
 
     }
     return (
