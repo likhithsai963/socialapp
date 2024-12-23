@@ -81,7 +81,7 @@ const CreatePost = () => {
                     </div>
                 ))}
             </div>
-            <div className="max-w-sm mx-auto bg-white shadow-md rounded-lg p-4 mt-6">
+            <div className="max-w-sm flex-row mx-auto bg-white shadow-md rounded-lg p-4 mt-6">
                 <textarea
                     className="w-full p-2 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
                     rows="3"
