@@ -29,10 +29,5 @@ export const fetchPosts = () => async (dispatch) => {
     dispatch(setPosts(posts));
     dispatch(setLoading(false));
 };
-export const addPost = (newPost) => async (dispatch) => {
-    const docRef = await addDoc(collection(db, "posts"), newPost);
-    console.log("New post added with ID:", docRef.id);
-    dispatch(fetchPosts()); // Fetch posts again to update the state
-};
 
 export default postsSlice.reducer;

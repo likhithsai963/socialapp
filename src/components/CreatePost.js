@@ -1,13 +1,86 @@
 import { useState } from "react";
 import { useDispatch } from "react-redux";
+import { ref, getDownloadURL, getStorage, uploadBytesResumable } from "firebase/storage";
+import { addDoc, collection, getFirestore } from "firebase/firestore";
 
 const CreatePost = () => {
     const dispatch = useDispatch();
     const [content, setContent] = useState("");
     const [media, setMedia] = useState([]);
     const [isUploading, setIsUploading] = useState(false);
+
+    const storage = getStorage();
+    const firestore = getFirestore();
+    const handleFileChange = (e) => {
+        setMedia(Array.from(e.target.files));
+      };
+    const handleSubmit = async () => {
+        if (!content || !media || media.length === 0) {
+            alert("Please provide both text and media.");
+            return;
+        }
+
+        setIsUploading(true);
+        try {
+            const uploadedFileUrls = [];
+
+            // Loop over all selected files and upload them to Firebase Storage
+            for (const file of media) {
+                const fileRef = ref(storage, `posts/${file.name}`);
+                const uploadTask = uploadBytesResumable(fileRef, file);
+
+                // Monitor the upload progress
+                await new Promise((resolve, reject) => {
+                    uploadTask.on(
+                        'state_changed',
+                        (snapshot) => {
+                            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                            console.log(`Upload is ${progress}% done`);
+                        },
+                        (error) => {
+                            reject(error);
+                        },
+                        async () => {
+                            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref());
+                            uploadedFileUrls.push(downloadURL); // Add the URL of each uploaded file
+                            resolve();
+                        }
+                    );
+                });
+            }
+
+            // After uploading all media, save the post metadata in Firestore
+            await addDoc(collection(firestore, "posts"), {
+                text: content,
+                imageUrls: uploadedFileUrls, // Store the array of image URLs
+                timestamp: new Date(),
+            });
+
+            console.log("Post uploaded successfully!");
+            setContent(''); // Reset the text input
+            setMedia(null); // Reset the file input
+        } catch (error) {
+            console.error("Error uploading post:", error);
+            alert("An error occurred while uploading the post.");
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
+
     return (
         <>
+            <div className="mt-4 flex gap-2 flex-wrap">
+                {media.map((file, index) => (
+                    <div key={index} className="relative w-20 h-20">
+                        <img
+                            src={URL.createObjectURL(file)}
+                            alt={`media-${index}`}
+                            className="w-full h-full object-cover rounded-lg"
+                        />
+                    </div>
+                ))}
+            </div>
             <div className="max-w-sm mx-auto bg-white shadow-md rounded-lg p-4 mt-6">
                 <textarea
                     className="w-full p-2 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -27,7 +100,8 @@ const CreatePost = () => {
                             accept="image/*"
                             id="file-upload"
                             className="hidden"
-                            // onChange={handleFileChange}
+                            multiple
+                            onChange={handleFileChange}
                             capture="environment"
                         />
                         <span className="text-sm font-medium text-gray-600">Photos</span>
@@ -41,7 +115,7 @@ const CreatePost = () => {
                             accept="video/*"
                             id="file-upload"
                             className="hidden"
-                            // onChange={handleFileChange}
+                            onChange={handleFileChange}
                             capture="environment"
                         />
                         <span className="text-sm font-medium text-gray-600">Video</span>
@@ -57,27 +131,15 @@ const CreatePost = () => {
                             id="camera-upload"
                             className="hidden"
                             capture="camera"
-                            // onChange={handleFileChange}
+                            onChange={handleFileChange}
                         />
                         <span className="text-sm font-medium text-gray-600">Camera</span>
                     </label>
                 </div>
 
-                <div className="mt-4 flex gap-2 flex-wrap">
-                    {media.map((file, index) => (
-                        <div key={index} className="relative w-20 h-20">
-                            <img
-                                src={URL.createObjectURL(file)}
-                                alt={`media-${index}`}
-                                className="w-full h-full object-cover rounded-lg"
-                            />
-                        </div>
-                    ))}
-                </div>
-
                 <button
                     className="w-full mt-4 bg-black text-white py-2 rounded-lg hover:bg-black focus:ring-2 focus:ring-blue-400 focus:outline-none"
-                    // onClick={handleSubmit}
+                    onClick={handleSubmit}
                     disabled={isUploading}
                 >
                     {isUploading ? "Uploading..." : "Create"}
